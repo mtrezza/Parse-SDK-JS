@@ -182,7 +182,7 @@ class LiveQueryClient extends EventEmitter {
    *
    * @param {object} query - the ParseQuery you want to subscribe to
    * @param {string} sessionToken (optional)
-   * @returns {LiveQuerySubscription} subscription
+   * @returns {LiveQuerySubscription | undefined}
    */
   subscribe(query: Object, sessionToken: ?string): LiveQuerySubscription {
     if (!query) {
@@ -224,19 +224,20 @@ class LiveQueryClient extends EventEmitter {
    * After calling unsubscribe you'll stop receiving events from the subscription object.
    *
    * @param {object} subscription - subscription you would like to unsubscribe from.
+   * @returns {Promise | undefined}
    */
-  unsubscribe(subscription: Object) {
+  unsubscribe(subscription: Object): ?Promise {
     if (!subscription) {
       return;
     }
-
-    this.subscriptions.delete(subscription.id);
     const unsubscribeRequest = {
       op: OP_TYPES.UNSUBSCRIBE,
       requestId: subscription.id,
     };
-    this.connectPromise.then(() => {
-      this.socket.send(JSON.stringify(unsubscribeRequest));
+    return this.connectPromise.then(() => {
+      return this.socket.send(JSON.stringify(unsubscribeRequest));
+    }).then(() => {
+      return subscription.unsubscribePromise;
     });
   }
 
@@ -400,9 +401,14 @@ class LiveQueryClient extends EventEmitter {
       }
       break;
     }
-    case OP_EVENTS.UNSUBSCRIBED:
-      // We have already deleted subscription in unsubscribe(), do nothing here
+    case OP_EVENTS.UNSUBSCRIBED: {
+      if (subscription) {
+        this.subscriptions.delete(data.requestId);
+        subscription.subscribed = false;
+        subscription.unsubscribePromise.resolve();
+      }
       break;
+    }
     default: {
       // create, update, enter, leave, delete cases
       if (!subscription) {
