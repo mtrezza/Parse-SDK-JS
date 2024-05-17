@@ -82,7 +82,7 @@
     "jest-environment-jsdom": "29.5.0",
     "jsdoc": "4.0.2",
     "jsdoc-babel": "0.5.0",
-    "lint-staged": "13.2.2",
+    "lint-staged": "15.2.2",
     "madge": "7.0.0",
     "metro-react-native-babel-preset": "0.76.4",
     "mongodb-runner": "5.4.3",
